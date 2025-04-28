@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star Wars Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #health-bar {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            font-size: 18px;
+            border-radius: 5px;
+        }
+
+        #info-box {
+            display: none;
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            z-index: 10;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        #fight-btn {
+            position: absolute;
+            bottom: 50px;
+            left: 150px;
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        #travel-btn {
+            position: absolute;
+            bottom: 50px;
+            left: 50px;
+            background-color: #2196F3;
+            color: white;
+        }
+
+        #battle-screen {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 800px;
+            height: 60%;
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            color: white;
+            padding: 20px;
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        #attack-btn {
+            background-color: red;
+            color: white;
+        }
+
+        #defend-btn {
+            background-color: yellow;
+            color: white;
+        }
+
+        #exit-battle-btn {
+            background-color: blue;
+            color: white;
+            display: none;
+        }
+
+        .planet {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            animation: rotatePlanet 15s linear infinite;
+            transition: all 0.3s ease;
+        }
+
+        .planet:hover {
+            transform: scale(1.1);
+        }
+
+        @keyframes rotatePlanet {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #character {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            transition: all 0.5s ease;
+        }
+
+        #character img {
+            width: 100px;
+            height: 100px;
+        }
+
+        #battle-screen #battle-player {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            animation: playerIdle 2s ease infinite alternate;
+        }
+
+        @keyframes playerIdle {
+            from {
+                transform: translateY(0);
+            }
+            to {
+                transform: translateY(-10px);
+            }
+        }
+
+        #battle-screen #battle-player img {
+            width: 120px;
+            height: 120px;
+        }
+
+        #battle-screen #enemy {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            animation: enemyIdle 2s ease infinite alternate;
+        }
+
+        @keyframes enemyIdle {
+            from {
+                transform: translateY(0);
+            }
+            to {
+                transform: translateY(-10px);
+            }
+        }
+
+        #battle-screen #enemy img {
+            width: 120px;
+            height: 120px;
+        }
+    </style>
+</head>
+
+<body>
+<div id="game-container">
+    <!-- 背景图 -->
+    <div id="background">
+        <img src="assets/galaxy-map.png" alt="Galaxy Map" class="w-full h-full object-cover" />
+    </div>
+
+    <!-- 星球地图 -->
+    <div id="map-container">
+        <div class="planet" data-name="Tatooine" style="left: 10%; top: 20%; background: linear-gradient(to bottom, #ffcc00, #ff9900);"></div>
+        <div class="planet" data-name="Naboo" style="left: 30%; top: 40%; background: linear-gradient(to bottom, #00ccff, #0099cc);"></div>
+        <div class="planet" data-name="Coruscant" style="left: 50%; top: 10%; background: linear-gradient(to bottom, #ff6600, #ff3300);"></div>
+        <div class="planet" data-name="Endorse" style="left: 20%; top: 60%; background: linear-gradient(to bottom, #008000, #004d00);"></div>
+        <div class="planet" data-name="Kashyyyk" style="left: 70%; top: 30%; background: linear-gradient(to bottom, #006400, #003300);"></div>
+        <div class="planet" data-name="Hoth" style="left: 40%; top: 80%; background: linear-gradient(to bottom, #87CEFA, #ADD8E6);"></div>
+        <div class="planet" data-name="Mustafar" style="left: 60%; top: 60%; background: linear-gradient(to bottom, #FF4500, #8B0000);"></div>
+        <div class="planet" data-name="Geonosis" style="left: 80%; top: 20%; background: linear-gradient(to bottom, #A9A9A9, #696969);"></div>
+        <div class="planet" data-name="Dagobah" style="left: 15%; top: 35%; background: linear-gradient(to bottom, #32CD32, #228B22);"></div>
+        <div class="planet" data-name="Sullust" style="left: 75%; top: 70%; background: linear-gradient(to bottom, #FF8C00, #FFA500);"></div>
+    </div>
+
+    <!-- 星球信息框 -->
+    <div id="info-box"></div>
+
+    <!-- 角色展示 -->
+    <div id="character">
+        <img src="assets/skin1.png" alt="Character" id="player" />
+    </div>
+
+    <!-- 血量 -->
+    <div id="health-bar">血量: <span id="health">100</span></div>
+
+    <!-- 战斗按钮 -->
+    <button id="fight-btn">Fight</button>
+
+    <!-- 星际旅行按钮 -->
+    <button id="travel-btn">Travel</button>
+
+    <!-- 战斗画面 -->
+    <div id="battle-screen">
+        <h2 class="text-2xl font-bold mb-4">战斗开始！</h2>
+        <div id="battle-status">
+            <p>敌人血量: <span id="enemy-health">50</span></p>
+            <p>你的血量: <span id="player-health">100</span></p>
+        </div>
+        <div id="battle-player">
+            <img src="assets/skin1.png" alt="Player" id="player-img" />
+        </div>
+        <div id="enemy">
+            <img src="assets/skin3.png" alt="Enemy" id="enemy-img" />
+        </div>
+        <div class="flex space-x-4 mt-4">
+            <button id="attack-btn">攻击</button>
+            <button id="defend-btn">防御</button>
+            <button id="exit-battle-btn">退出战斗</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.138.3/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+<script>
+    let scene, camera, renderer, player, planets = [], currentPlanet = null;
+    let health = 100;
+    let taskActive = false;
+    let attackSound = new Audio('assets/gun-sound-effect-01.mp3');
+    let defendSound = new Audio('assets/beep-07.wav');
+    let victorySound = new Audio('assets/beep-06.wav');
+    let defeatSound = new Audio('assets/beep-09.wav');
+    let battleBeams = [];
+    let explosions = [];
+    let clock = new THREE.Clock();
+    let mixer;
+    let world;
+
+    const planetInfo = {
+        "Tatooine": {
+            description: "A desert planet with vast sand dunes.",
+            bonus: 15,
+            resources: "丰富的沙虫资源和少量的金属矿",
+            enemyStrength: 10,
+            textureAnimation: 'desert',
+            dayNightCycle: 10 // 白天黑夜循环周期（秒）
+        },
+        "Naboo": {
+            description: "A lush green planet with beautiful landscapes.",
+            bonus: 20,
+            resources: "大量的水资源和生物资源",
+            enemyStrength: 12,
+            textureAnimation: null,
+            dayNightCycle: 15
+        },
+        "Coruscant": {
+            description: "The capital of the galaxy, a bustling metropolis.",
+            bonus: 25,
+            resources: "先进的科技资源和文化资源",
+            enemyStrength: 15,
+            textureAnimation: null,
+            dayNightCycle: 20
+        },
+        "Endorse": {
+            description: "A forest planet filled with tall trees.",
+            bonus: 18,
+            resources: "丰富的木材资源和草药资源",
+            enemyStrength: 11,
+            textureAnimation: null,
+            dayNightCycle: 12
+        },
+        "Kashyyyk": {
+            description: "A Wookiee homeworld with towering trees.",
+            bonus: 22,
+            resources: "独特的木材和神秘的草药资源",
+            enemyStrength: 13,
+            textureAnimation: null,
+            dayNightCycle: 18
+        },
+        "Hoth": {
+            description: "A frozen planet with harsh weather conditions.",
+            bonus: 16,
+            resources: "稀有的寒冰晶体资源",
+            enemyStrength: 14,
+            textureAnimation: null,
+            dayNightCycle: 25
+        },
+        "Mustafar": {
+            description: "A volcanic planet full of lava rivers.",
+            bonus: 21,
+            resources: "丰富的火山矿石资源",
+            enemyStrength: 16,
+            textureAnimation: 'volcano',
+            dayNightCycle: 8
+        },
+        "Geonosis": {
+            description: "A rocky planet with large insectoid populations.",
+            bonus: 17,
+            resources: "特殊的矿石和机械零件",
+            enemyStrength: 12,
+            textureAnimation: null,
+            dayNightCycle: 16
+        },
+        "Dagobah": {
+            description: "A swampy planet with strong Force presence.",
+            bonus: 19,
+            resources: "神秘的草药和能量晶体",
+            enemyStrength: 13,
+            textureAnimation: null,
+            dayNightCycle: 14
+        },
+        "Sullust": {
+            description: "A volcanic planet known for its engineering skills.",
+            bonus: 20,
+            resources: "优质的金属和高科技设备",
+            enemyStrength: 14,
+            textureAnimation: null,
+            dayNightCycle: 17
+        }
+    };
+
+    // 初始化物理世界
+    function initPhysics() {
+        world = new CANNON.World();
+        world.gravity.set(0, -9.82, 0); // 设置重力
+
+        // 创建地面
+        const groundShape = new CANNON.Plane();
+        const groundBody = new CANNON.Body({
+            mass: 0, // 静态物体
+            position: new CANNON.Vec3(0, -10, 0),
+            shape: groundShape
+        });
+        groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+        world.addBody(groundBody);
+    }
+
+    // 初始化3D场景
+    function init() {
+        initPhysics();
+
+        // 创建场景
+        scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x000000, 10, 100); // 添加雾效
+
+        // 创建相机
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+        // 创建渲染器
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('game-container').appendChild(renderer.domElement);
+
+        // 创建角色
+        const loader = new THREE.GLTFLoader();
+        loader.load('assets/character.glb', function (gltf) {
+            player = gltf.scene;
+            player.position.set(0, 0, 10);
+            scene.add(player);
+
+            mixer = new THREE.AnimationMixer(player);
+            const clips = gltf.animations;
+            if (clips.length > 0) {
+                const idleClip = THREE.AnimationClip.findByName(clips, 'Idle');
+                const action = mixer.clipAction(idleClip);
+                action.play();
+            }
+
+            // 创建角色的物理体
+            const playerShape = new CANNON.Sphere(1);
+            const playerBody = new CANNON.Body({
+                mass: 1,
+                position: new CANNON.Vec3(0, 0, 10),
+                shape: playerShape
+            });
+            world.addBody(playerBody);
+        });
+
+        // 创建粒子系统
+        const particleCount = 1000;
+        const particlesGeometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+
+        for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            positions[i3] = (Math.random() - 0.5) * 100;
+            positions[i3 + 1] = (Math.random() - 0.5) * 100;
+            positions[i3 + 2] = (Math.random() - 0.5) * 100;
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const particlesMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+        const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particles);
+
+        // 创建多个星球
+        const planetData = [
+            { name: "Tatooine", color1: 0xffcc00, color2: 0xff9900, position: [-10, 0, 0], size: 1, rotationSpeed: 0.002, orbitRadius: 10, orbitSpeed: 0.001 },
+            { name: "Naboo", color1: 0x00ccff, color2: 0x0099cc, position: [10, 0, 0], size: 1.2, rotationSpeed: 0.003, orbitRadius: 12, orbitSpeed: 0.0008 },
+            { name: "Coruscant", color1: 0xff6600, color2: 0xff3300, position: [0, 10, 0], size: 1.1, rotationSpeed: 0.0015, orbitRadius: 8, orbitSpeed: 0.0012 },
+            { name: "Endorse", color1: 0x008000, color2: 0x004d00, position: [0, -10, 0], size: 0.9, rotationSpeed: 0.0025, orbitRadius: 9, orbitSpeed: 0.0011 },
+            { name: "Kashyyyk", color1: 0x006400, color2: 0x003300, position: [15, 5, 0], size: 1.3, rotationSpeed: 0.0035, orbitRadius: 15, orbitSpeed: 0.0007 },
+            { name: "Hoth", color1: 0x87CEFA, color2: 0xADD8E6, position: [-5, -15, 0], size: 0.8, rotationSpeed: 0.001, orbitRadius: 7, orbitSpeed: 0.0013 },
+            { name: "Mustafar", color1: 0xFF4500, color2: 0x8B0000, position: [-15, 5, 0], size: 1.4, rotationSpeed: 0.004, orbitRadius: 14, orbitSpeed: 0.0009 },
+            { name: "Geonosis", color1: 0xA9A9A9, color2: 0x696969, position: [20, -10, 0], size: 1, rotationSpeed: 0.0022, orbitRadius: 16, orbitSpeed: 0.0006 },
+            { name: "Dagobah", color1: 0x32CD32, color2: 0x228B22, position: [-10, 15, 0], size: 1.1, rotationSpeed: 0.0028, orbitRadius: 11, orbitSpeed: 0.001 },
+            { name: "Sullust", color1: 0xFF8C00, color2: 0xFFA500, position: [15, -20, 0], size: 1.2, rotationSpeed: 0.0032, orbitRadius: 13, orbitSpeed: 0.0008 }
+        ];
+
+        planetData.forEach((data, index) => {
+            let geometry = new THREE.SphereGeometry(data.size, 32, 32);
+            let shaderMaterial;
+            let uniforms = {
+                uColor1: { value: new THREE.Color(data.color1) },
+                uColor2: { value: new THREE.Color(data.color2) },
+                uTime: { value: 0 },
+                uDayNight: { value: 1 } // 用于白天黑夜循环
+            };
+
+            if (planetInfo[data.name].textureAnimation === 'desert') {
+                shaderMaterial = new THREE.ShaderMaterial({
+                    uniforms: uniforms,
+                    vertexShader: `
+                            varying vec2 vUv;
+                            uniform float uTime;
+                            void main() {
+                                vUv = uv;
+                                vec3 newPosition = position;
+                                newPosition.x += sin(uTime + position.y) * 0.1;
+                                newPosition.y += cos(uTime + position.x) * 0.1;
+                                gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+                            }
+                        `,
+                    fragmentShader: `
+                            varying vec2 vUv;
+                            uniform vec3 uColor1;
+                            uniform vec3 uColor2;
+                            uniform float uTime;
+                            uniform float uDayNight;
+                            void main() {
+                                float t = vUv.y + uTime * 0.05;
+                                vec3 color = mix(uColor1, uColor2, t);
+                                color *= uDayNight; // 应用白天黑夜光照
+                                gl_FragColor = vec4(color, 1.0);
+                            }
+                        `
+                });
+            } else if (planetInfo[data.name].textureAnimation === 'volcano') {
+                shaderMaterial = new THREE.ShaderMaterial({
+                    uniforms: uniforms,
+                    vertexShader: `
+                            varying vec2 vUv;
+                            uniform float uTime;
+                            void main() {
+                                vUv = uv;
+                                vec3 newPosition = position;
+                                newPosition.x += sin(uTime + position.y) * 0.1;
+                                newPosition.y += cos(uTime + position.x) * 0.1;
+                                gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+                            }
+                        `,
+                    fragmentShader: `
+                            varying vec2 vUv;
+                            uniform vec3 uColor1;
+                            uniform vec3 uColor2;
+                            uniform float uTime;
+                            uniform float uDayNight;
+                            void main() {
+                                float t = vUv.y + sin(uTime * 0.1 + vUv.x * 10.0) * 0.1;
+                                vec3 color = mix(uColor1, uColor2, t);
+                                color *= uDayNight; // 应用白天黑夜光照
+                                gl_FragColor = vec4(color, 1.0);
+                            }
+                        `
+                });
+            } else {
+                shaderMaterial = new THREE.ShaderMaterial({
+                    uniforms: uniforms,
+                    vertexShader: `
+                            varying vec2 vUv;
+                            uniform float uTime;
+                            void main() {
+                                vUv = uv;
+                                vec3 newPosition = position;
+                                newPosition.x += sin(uTime + position.y) * 0.1;
+                                newPosition.y += cos(uTime + position.x) * 0.1;
+                                gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+                            }
+                        `,
+                    fragmentShader: `
+                            varying vec2 vUv;
+                            uniform vec3 uColor1;
+                            uniform vec3 uColor2;
+                            uniform float uDayNight;
+                            void main() {
+                                float t = vUv.y;
+                                vec3 color = mix(uColor1, uColor2, t);
+                                color *= uDayNight; // 应用白天黑夜光照
+                                gl_FragColor = vec4(color, 1.0);
+                            }
+                        `
+                });
+            }
+
+            let planet = new THREE.Mesh(geometry, shaderMaterial);
+            planet.position.set(...data.position);
+            planet.name = data.name;
+            planet.rotationSpeed = data.rotationSpeed;
+            planet.orbitRadius = data.orbitRadius;
+            planet.orbitSpeed = data.orbitSpeed;
+            planets.push(planet);
+            scene.add(planet);
+
+            // 添加光晕效果
+            let haloGeometry = new THREE.SphereGeometry(data.size * 1.2, 32, 32);
+            let haloMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    uColor: { value: new THREE.Color(data.color1).multiplyScalar(0.5) },
+                    uAlpha: { value: 0.2 }
+                },
+                vertexShader: `
+                        void main() {
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `,
+                fragmentShader: `
+                        uniform vec3 uColor;
+                        uniform float uAlpha;
+                        void main() {
+                            gl_FragColor = vec4(uColor, uAlpha);
+                        }
+                    `,
+                transparent: true,
+                depthWrite: false
+            });
+            let halo = new THREE.Mesh(haloGeometry, haloMaterial);
+            halo.position.copy(planet.position);
+            scene.add(halo);
+
+            // 创建星球的物理体
+            const planetShape = new CANNON.Sphere(data.size);
+            const planetBody = new CANNON.Body({
+                mass: 0, // 静态物体
+                position: new CANNON.Vec3(...data.position),
+                shape: planetShape
+            });
+            world.addBody(planetBody);
+        });
+
+        // 设置摄像机位置
+        camera.position.z = 30;
+
+        // 创建光源
+        let light = new THREE.PointLight(0xffffff, 1, 100);
+        light.position.set(10, 10, 10);
+        scene.add(light);
+
+        // 启动动画循环
+        animate();
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        let delta = clock.getDelta();
+        let elapsedTime = clock.getElapsedTime();
+
+        // 更新物理世界
+        world.step(delta);
+
+        // 更新粒子系统时间
+        planets.forEach(planet => {
+            if (planet.material.uniforms.uTime) {
+                planet.material.uniforms.uTime.value += 0.01;
+            }
+            planet.rotation.y += planet.rotationSpeed;
+
+            // 轨道动画
+            let angle = elapsedTime * planet.orbitSpeed;
+            planet.position.x = planet.orbitRadius * Math.cos(angle);
+            planet.position.z = planet.orbitRadius * Math.sin(angle);
+
+            // 白天黑夜循环
+            let cycleDuration = planetInfo[planet.name].dayNightCycle;
+            let dayNightValue = (Math.sin((elapsedTime / cycleDuration) * Math.PI * 2) + 1) / 2 * 0.8 + 0.2;
+            planet.material.uniforms.uDayNight.value = dayNightValue;
+        });
+
+        // 更新战斗光束
+        battleBeams.forEach((beam, index) => {
+            beam.position.z -= 0.5; // 让光束向前移动
+            if (beam.position.z < -10) {
+                scene.remove(beam);
+                battleBeams.splice(index, 1);
+            }
+        });
+
+        // 更新爆炸效果
+        explosions.forEach((explosion, index) => {
+            explosion.scale.multiplyScalar(1.1);
+            explosion.material.opacity *= 0.9;
+            if (explosion.material.opacity < 0.01) {
+                scene.remove(explosion);
+                explosions.splice(index, 1);
+            }
+        });
+
+        // 更新角色动画
+        if (mixer) {
+            mixer.update(delta);
+        }
+
+        // 同步物理体和渲染对象的位置
+        if (player) {
+            const playerBody = world.bodies.find(body => body.position.equals(new CANNON.Vec3(player.position.x, player.position.y, player.position.z)));
+            if (playerBody) {
+                player.position.copy(playerBody.position);
+                player.quaternion.copy(playerBody.quaternion);
+            }
+        }
+
+        // 渲染场景
+        renderer.render(scene, camera);
+    }
+
+    // 窗口大小改变时，更新渲染器
+    window.addEventListener('resize', () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+    });
+
+    // 点击事件：星球任务交互
+    const planetElements = document.querySelectorAll('.planet');
+    const infoBox = document.getElementById('info-box');
+    planetElements.forEach(planet => {
+        planet.addEventListener('click', () => {
+            const planetName = planet.dataset.name;
+            currentPlanet = planetName;
+
+            const planetData = planetInfo[planetName];
+            infoBox.innerHTML = `
+                    <h3 class="text-lg font-bold">${planetName}</h3>
+                    <p>简介: ${planetData.description}</p>
+                    <p>资源: ${planetData.resources}</p>
+                `;
+            infoBox.style.display = 'block';
+            infoBox.style.left = planet.offsetLeft + 'px';
+            infoBox.style.top = planet.offsetTop + planet.offsetHeight + 'px';
+
+            if (!taskActive) {
+                alert(`任务开始！前往 ${planetName} 完成任务！`);
+                taskActive = true;
+                // 角色移动到星球旁边
+                const planetObj = planets.find(p => p.name === planetName);
+                if (planetObj) {
+                    gsap.to(player.position, {
+                        x: planetObj.position.x,
+                        y: planetObj.position.y,
+                        z: planetObj.position.z + 2, // 角色在星球前方一点
+                        duration: 2,
+                        ease: "power2.out",
+                        onComplete: () => {
+                            // 角色到达星球后开始任务
+                            startPlanetTask(planetName);
+                        }
+                    });
+                }
+            }
+        });
+    });
+
+    // 点击其他地方隐藏信息框
+    window.addEventListener('click', (e) => {
+        if (!infoBox.contains(e.target) && !Array.from(planetElements).some(p => p.contains(e.target))) {
+            infoBox.style.display = 'none';
+        }
+    });
+
+    // 旅行按钮：将角色移动到所选星球
+    function travelToPlanet(planetName) {
+        const planet = document.querySelector(`.planet[data-name="${planetName}"]`);
+        if (planet) {
+            const rect = planet.getBoundingClientRect();
+            const character = document.getElementById('character');
+            character.style.left = rect.left + 'px';
+            character.style.top = rect.top + 'px';
+        }
+    }
+
+    // 初始化游戏
+    init();
+
+    // 按钮点击事件处理
+    const fightBtn = document.getElementById('fight-btn');
+    const travelBtn = document.getElementById('travel-btn');
+    const battleScreen = document.getElementById('battle-screen');
+    const attackBtn = document.getElementById('attack-btn');
+    const defendBtn = document.getElementById('defend-btn');
+    const exitBattleBtn = document.getElementById('exit-battle-btn');
+    const enemyHealthElement = document.getElementById('enemy-health');
+    const playerHealthElement = document.getElementById('player-health');
+
+    fightBtn.addEventListener('click', () => {
+        if (currentPlanet) {
+            const enemyStrength = planetInfo[currentPlanet].enemyStrength;
+            enemyHealthElement.textContent = enemyStrength * 5;
+            playerHealthElement.textContent = health;
+
+            // 场景切换过渡效果
+            battleScreen.style.opacity = 0;
+            battleScreen.style.display = 'block';
+            gsap.to(battleScreen, { opacity: 1, duration: 0.5, ease: "power2.out" });
+
+        } else {
+            alert('请先选择一个星球！');
+        }
+    });
+
+    travelBtn.addEventListener('click', () => {
+        if (currentPlanet) {
+            travelToPlanet(currentPlanet);
+        } else {
+            alert('请先选择一个星球！');
+        }
+    });
+
+    function checkBattleEnd() {
+        let enemyHP = parseInt(enemyHealthElement.textContent);
+        let playerHP = parseInt(playerHealthElement.textContent);
+        if (enemyHP <= 0) {
+            victorySound.play();
+            alert('战斗胜利！');
+
+            // 场景切换过渡效果
+            gsap.to(battleScreen, { opacity: 0, duration: 0.5, ease: "power2.in", onComplete: () => {
+                    battleScreen.style.display = 'none';
+                }});
+
+            const planetData = planetInfo[currentPlanet];
+            health += planetData.bonus;
+            document.getElementById('health').textContent = health;
+            taskActive = false;
+        } else if (playerHP <= 0) {
+            defeatSound.play();
+            alert('战斗失败！');
+
+            // 场景切换过渡效果
+            gsap.to(battleScreen, { opacity: 0, duration: 0.5, ease: "power2.in", onComplete: () => {
+                    battleScreen.style.display = 'none';
+                }});
+
+            health = 10;
+            document.getElementById('health').textContent = health;
+            taskActive = false;
+        }
+    }
+
+    attackBtn.addEventListener('click', () => {
+        attackSound.play();
+        // 简单的攻击逻辑
+        let enemyHP = parseInt(enemyHealthElement.textContent);
+        let playerHP = parseInt(playerHealthElement.textContent);
+        enemyHP -= 10;
+        playerHP -= planetInfo[currentPlanet].enemyStrength;
+        enemyHealthElement.textContent = enemyHP;
+        playerHealthElement.textContent = playerHP;
+
+        // 添加激光射击光束效果
+        let beamGeometry = new THREE.CylinderGeometry(0.1, 0.1, 2, 32);
+        let beamMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        let beam = new THREE.Mesh(beamGeometry, beamMaterial);
+        // 设置光束起始位置，假设玩家位置在原点
+        beam.position.set(0, 0, 0);
+        scene.add(beam);
+        battleBeams.push(beam);
+
+        checkBattleEnd();
+    });
+</script>

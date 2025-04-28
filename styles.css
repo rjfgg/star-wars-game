@@ -1,0 +1,175 @@
+/* 星球背景的渐变颜色 */
+.planet {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    position: absolute;
+    z-index: 10; /* 确保星球在背景上面 */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.7); /* 给星球一个阴影效果 */
+    transition: transform 0.3s ease; /* 星球点击时的动画效果 */
+}
+
+.planet:hover {
+    transform: scale(1.2); /* 鼠标悬停时，星球放大 */
+}
+
+/* 星球渐变色 */
+.planet[data-name="Tatooine"] {
+    background: radial-gradient(circle, #f39c12, #e67e22); /* 橙色渐变 */
+}
+
+.planet[data-name="Coruscant"] {
+    background: radial-gradient(circle, #2c3e50, #34495e); /* 深蓝色渐变 */
+}
+
+.planet[data-name="Hoth"] {
+    background: radial-gradient(circle, #3498db, #2980b9); /* 蓝色渐变 */
+}
+
+.planet[data-name="Dagobah"] {
+    background: radial-gradient(circle, #27ae60, #2ecc71); /* 绿色渐变 */
+}
+
+.planet[data-name="Naboo"] {
+    background: radial-gradient(circle, #f1c40f, #f39c12); /* 黄色渐变 */
+}
+
+.planet[data-name="Endor"] {
+    background: radial-gradient(circle, #1abc9c, #16a085); /* 绿松石色渐变 */
+}
+
+.planet[data-name="Tatoo"] {
+    background: radial-gradient(circle, #9b59b6, #8e44ad); /* 紫色渐变 */
+}
+
+.planet[data-name="Sith"] {
+    background: radial-gradient(circle, #c0392b, #e74c3c); /* 红色渐变 */
+}
+
+.planet[data-name="Jakku"] {
+    background: radial-gradient(circle, #d35400, #e67e22); /* 橙红色渐变 */
+}
+
+.planet[data-name="Mustafar"] {
+    background: radial-gradient(circle, #e74c3c, #c0392b); /* 深红色渐变 */
+}
+
+.planet[data-name="Togruta"] {
+    background: radial-gradient(circle, #9b59b6, #8e44ad); /* 深紫色渐变 */
+}
+
+/* 角色 */
+#character {
+    position: absolute;
+    top: 300px;
+    left: 400px;
+    z-index: 20; /* 确保角色在星球和背景上面 */
+}
+
+#player {
+    width: 50px;
+    height: 100px;
+    border-radius: 5px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+/* 血量条 */
+#health-bar {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    font-size: 16px;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 5px;
+}
+
+/* 星球信息框 */
+#info-box {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    z-index: 20;
+    display: none; /* 初始隐藏 */
+}
+
+/* 按钮布局 */
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 5px;
+    transition: background-color 0.3s ease;
+}
+
+/* 各类按钮 */
+#travel-btn {
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+    background-color: #2196F3;
+}
+
+#fight-btn {
+    position: absolute;
+    bottom: 50px;
+    left: 150px;
+    background-color: #4CAF50;
+}
+
+/* 战斗屏幕 */
+#battle-screen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    height: 60%;
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 15px;
+    color: white;
+    padding: 20px;
+    display: none; /* 默认隐藏战斗屏幕 */
+}
+
+/* 战斗状态 */
+#battle-status {
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+
+/* 战斗信息按钮 */
+#attack-btn {
+    background-color: red;
+}
+
+#defend-btn {
+    background-color: yellow;
+}
+
+#exit-battle-btn {
+    background-color: blue;
+    display: none; /* 退出按钮默认为隐藏 */
+}
+
+/* 战斗按钮悬停效果 */
+#attack-btn:hover {
+    background-color: #ff4d4d; /* 攻击按钮悬停 */
+}
+
+#defend-btn:hover {
+    background-color: #ffeb3b; /* 防御按钮悬停 */
+}
+
+#exit-battle-btn:hover {
+    background-color: #2196f3; /* 退出按钮悬停 */
+}
