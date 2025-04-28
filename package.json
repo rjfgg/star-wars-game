@@ -6,6 +6,7 @@
   "scripts": {
     "start": "electron .",
     "package": "electron-builder build"
+    "build": "webpack --config webpack.config.js"
   },
   "author": "",
   "license": "ISC",
