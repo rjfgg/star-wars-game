@@ -3,9 +3,5 @@
     "compatibility_date": "2025-04-29",  // 根据需要调整日期
     "main": "src/index.ts" , // 替换为实际的脚本入口文件路径
     "nodejs_compat": false,
-    "external": [
-        "chanfana",
-        "zod",
-        "hono"
-    ]
+    
 }
